@@ -3,10 +3,12 @@ package main
 import (
 	"github.com/gorilla/mux"
 
+	"FD/logger"
 	"FD/router"
 )
 
 func main() {
+	logger.LogSetting()
 	app := mux.NewRouter()
 
 	// post
