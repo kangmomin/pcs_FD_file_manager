@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/gorilla/mux"
 
 	"FD/logger"
@@ -13,4 +15,6 @@ func main() {
 
 	// post
 	app.HandleFunc("/post", router.GetPosts).Methods("GET")
+
+	http.ListenAndServe(":3000", app)
 }
