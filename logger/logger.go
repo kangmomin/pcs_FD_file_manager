@@ -13,6 +13,4 @@ func LogSetting() {
 	defer logFile.Close()
 
 	log.SetOutput(logFile) //로그 출력 위치를 파일로 변경
-
-	log.Println("End of Program")
 }
