@@ -12,7 +12,7 @@ import (
 var db *sql.DB = util.DB
 
 type res struct {
-	Data any
+	Data any  `json:"data"`
 	Err  bool `json:"error"`
 }
 

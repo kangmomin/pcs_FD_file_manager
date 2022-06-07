@@ -3,10 +3,10 @@ package util
 import "time"
 
 type PostList struct {
-	PostId   int
-	UserName string
-	Title    string
-	Created  time.Time
+	PostId   int       `json:"post_id"`
+	UserName string    `json:"user_name"`
+	Title    string    `json:"title"`
+	Created  time.Time `json:"created"`
 }
 
 type SearchBody struct {
