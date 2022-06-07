@@ -21,11 +21,13 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 	data, err := db.Query("SELECT post_id, user_name, title, created FROM post ORDER BY post_id DESC LIMIT 30;") // 추후 page searching도 만들어야함.
 	if err != nil {
 		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
 		resData, _ := json.Marshal(res{
 			Data: nil,
 			Err:  true,
 		})
 		fmt.Fprint(w, string(resData))
+		return
 	}
 
 	for data.Next() {
@@ -40,5 +42,70 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 		Err:  false,
 	})
 
+	fmt.Fprint(w, string(resData))
+}
+
+func SearchPost(w http.ResponseWriter, r *http.Request) {
+	sql := "SELECT post_id, user_name, title, created FROM post WHERE "
+
+	var searchSetting util.SearchBody
+	err := json.NewDecoder(r.Body).Decode(&searchSetting)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Println(err)
+		resData, _ := json.Marshal(res{
+			Data: nil,
+			Err:  true,
+		})
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	// word search
+	if len(searchSetting.Word) < 3 {
+		sql += "title LIKE %" + searchSetting.Word + "% AND "
+	}
+
+	// club search
+	if len(searchSetting.Club) > 0 {
+		sql += "club=" + searchSetting.Club + " AND "
+	}
+
+	// time search
+	if len(searchSetting.StartDate) > 9 {
+		// 2022-03-23
+		sql += "post_id=(SELECT post_id WHERE create BETWEEN" + searchSetting.StartDate
+		if len(searchSetting.EndDate) > 9 {
+			sql += "AND " + searchSetting.EndDate
+		}
+		sql += ")"
+	}
+
+	sql += "ORDER BY post_id LIMIT 30;"
+
+	data, err := db.Query(sql)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		resData, _ := json.Marshal(res{
+			Data: nil,
+			Err:  true,
+		})
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	var postList []util.PostList
+	for data.Next() {
+		var row util.PostList
+		data.Scan(&row.PostId, &row.UserName, &row.Title, &row.Created)
+		postList = append(postList, row)
+	}
+
+	resData, _ := json.Marshal(res{
+		Data: postList,
+		Err:  false,
+	})
+	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, string(resData))
 }
