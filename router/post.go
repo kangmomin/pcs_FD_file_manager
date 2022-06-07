@@ -11,18 +11,13 @@ import (
 
 var db *sql.DB = util.DB
 
-type res struct {
-	Data any  `json:"data"`
-	Err  bool `json:"error"`
-}
-
 func GetPosts(w http.ResponseWriter, _ *http.Request) {
 	var postList []util.PostList
 	data, err := db.Query("SELECT post_id, user_name, title, created FROM post ORDER BY post_id DESC LIMIT 30;") // 추후 page searching도 만들어야함.
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
-		resData, _ := json.Marshal(res{
+		resData, _ := json.Marshal(util.Res{
 			Data: nil,
 			Err:  true,
 		})
@@ -37,7 +32,7 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 		postList = append(postList, post)
 	}
 
-	resData, _ := json.Marshal(res{
+	resData, _ := json.Marshal(util.Res{
 		Data: postList,
 		Err:  false,
 	})
@@ -53,7 +48,7 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Println(err)
-		resData, _ := json.Marshal(res{
+		resData, _ := json.Marshal(util.Res{
 			Data: nil,
 			Err:  true,
 		})
@@ -87,7 +82,7 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
-		resData, _ := json.Marshal(res{
+		resData, _ := json.Marshal(util.Res{
 			Data: nil,
 			Err:  true,
 		})
@@ -102,10 +97,61 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 		postList = append(postList, row)
 	}
 
-	resData, _ := json.Marshal(res{
+	resData, _ := json.Marshal(util.Res{
 		Data: postList,
 		Err:  false,
 	})
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(resData))
+}
+
+func PostDetail(w http.ResponseWriter, r *http.Request) {
+	var postId struct {
+		id int `json:"post_id"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&postId.id)
+	if err != nil {
+		resData, _ := json.Marshal(util.Res{
+			Data: nil,
+			Err:  true,
+		})
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	var postDetail util.PostDetail
+	err = db.QueryRow("SELECT club_id, title, readme, file_path, created FROMM post WHERE id=?;", postId.id).
+		Scan(&postDetail.ClubId, &postDetail.Title, &postDetail.FilePath, &postDetail.Created)
+	if err != nil {
+		log.Println(err)
+		resData, _ := json.Marshal(util.Res{
+			Data: nil,
+			Err:  true,
+		})
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	err = db.QueryRow("SELECT user_name FROM user WHERE user_id=(SELECT writer_id FROM post WHERE post_id=?);", postId.id).
+		Scan(&postDetail.WriterName)
+	if err != nil {
+		log.Println(err)
+		resData, _ := json.Marshal(util.Res{
+			Data: nil,
+			Err:  true,
+		})
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	resData, _ := json.Marshal(util.Res{
+		Data: postDetail,
+		Err:  false,
+	})
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, string(resData))
 }
