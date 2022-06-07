@@ -1,15 +1,17 @@
 package router
 
 import (
+	"FD/logger"
 	"FD/util"
+
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 )
 
 var db *sql.DB = util.DB
+var log = logger.Logger
 
 func GetPosts(w http.ResponseWriter, _ *http.Request) {
 	var postList []util.PostList

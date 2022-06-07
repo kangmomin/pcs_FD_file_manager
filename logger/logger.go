@@ -3,14 +3,31 @@ package logger
 import (
 	"log"
 	"os"
+	"sync"
 )
 
-func LogSetting() {
-	logFile, err := os.OpenFile("logfile.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		panic(err)
-	}
-	defer logFile.Close()
+type logger struct {
+	fileName string
+	*log.Logger
+}
 
-	log.SetOutput(logFile) //로그 출력 위치를 파일로 변경
+var once sync.Once
+var Logger = getErrLogger()
+
+func getErrLogger() *logger {
+	var logger *logger
+	once.Do(func() {
+		logger = setLogger("./log/err.log")
+	})
+	return logger
+}
+
+func setLogger(filePath string) *logger {
+	file, _ := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+
+	log.SetOutput(file)
+	return &logger{
+		fileName: file.Name(),
+		Logger:   log.New(file, "LOG: ", log.Ldate|log.Ltime|log.Lshortfile),
+	}
 }
