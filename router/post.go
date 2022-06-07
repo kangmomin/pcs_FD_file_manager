@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 var db *sql.DB = util.DB
@@ -108,11 +110,8 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func PostDetail(w http.ResponseWriter, r *http.Request) {
-	var postId struct {
-		id int `json:"post_id"`
-	}
-	err := json.NewDecoder(r.Body).Decode(&postId.id)
-	if err != nil {
+	postId, ok := mux.Vars(r)["postId"]
+	if ok != false {
 		resData, _ := json.Marshal(util.Res{
 			Data: nil,
 			Err:  true,
@@ -123,7 +122,7 @@ func PostDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var postDetail util.PostDetail
-	err = db.QueryRow("SELECT club_id, title, readme, file_path, created FROMM post WHERE id=?;", postId.id).
+	err := db.QueryRow("SELECT club_id, title, readme, file_path, created FROMM post WHERE id=?;", postId).
 		Scan(&postDetail.ClubId, &postDetail.Title, &postDetail.FilePath, &postDetail.Created)
 	if err != nil {
 		log.Println(err)
@@ -136,7 +135,7 @@ func PostDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.QueryRow("SELECT user_name FROM user WHERE user_id=(SELECT writer_id FROM post WHERE post_id=?);", postId.id).
+	err = db.QueryRow("SELECT user_name FROM user WHERE user_id=(SELECT writer_id FROM post WHERE post_id=?);", postId).
 		Scan(&postDetail.WriterName)
 	if err != nil {
 		log.Println(err)

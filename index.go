@@ -13,6 +13,7 @@ func main() {
 
 	// post
 	app.HandleFunc("/post", router.GetPosts).Methods("GET")
+	app.HandleFunc("/post/{postId}", router.PostDetail).Methods("GET")
 
 	http.ListenAndServe(":8080", app)
 }
