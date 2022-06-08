@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 
 	"golang.org/x/crypto/argon2"
@@ -17,7 +18,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		resData, _ := json.Marshal(util.Res{
-			Data: nil,
+			Data: "data isn't json",
 			Err:  true,
 		})
 		fmt.Fprint(w, string(resData))
@@ -59,5 +60,60 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Err:  false,
 	})
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(resData))
+}
+
+func SignUp(w http.ResponseWriter, r *http.Request) {
+	var signUpData util.SignUp
+	err := json.NewDecoder(r.Body).Decode(&signUpData)
+	if err != nil {
+		log.Println(err)
+		resData, _ := json.Marshal(util.Res{
+			Data: "data isn't json",
+			Err:  true,
+		})
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	if signUpData.ClubId != 0 ||
+		signUpData.Email != "" ||
+		signUpData.LoginId != "" ||
+		signUpData.Password != "" ||
+		signUpData.PhoneNum != "" ||
+		signUpData.UserName != "" {
+		resData, _ := json.Marshal(util.Res{
+			Data: "not enough values",
+			Err:  true,
+		})
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	salt := make([]byte, 32)
+	rand.Read(salt)
+	encryptedPwd := argon2.IDKey([]byte(signUpData.Password), salt, argonConfig.Time, argonConfig.Memory, argonConfig.Thread, argonConfig.KeyLen)
+
+	_, err = db.Exec("INSERT INTO user (club_id, user_name, email, login_id, password, phone_num, salt) VALUES (?, ?, ?, ?, ?, ?, ?);",
+		signUpData.ClubId, signUpData.UserName, signUpData.Email, signUpData.LoginId, hex.EncodeToString(encryptedPwd), signUpData.PhoneNum, hex.EncodeToString(salt))
+
+	if err != nil {
+		resData, _ := json.Marshal(util.Res{
+			Data: "cannot sign up",
+			Err:  true,
+		})
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	resData, _ := json.Marshal(util.Res{
+		Data: "success",
+		Err:  false,
+	})
+
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(resData))
 }
