@@ -16,6 +16,13 @@ type Res struct {
 	Err  bool `json:"error"`
 }
 
+type ArgonConfig struct {
+	Time   uint32
+	Memory uint32
+	Thread uint8
+	KeyLen uint32
+}
+
 // ============== logger ================
 type logger struct {
 	fileName string

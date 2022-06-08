@@ -11,9 +11,11 @@ type ConfirmLoginData struct {
 	DecodeSalt []byte `json:"decode_password"`
 }
 
-type ArgonConfig struct {
-	Time   uint32
-	Memory uint32
-	Thread uint8
-	KeyLen uint32
+type SignUp struct {
+	ClubId   int    `json:"club_id"`
+	UserName string `json:"user_name"`
+	Email    string `json:"email"`
+	LoginId  string `json:"login_id"`
+	Password string `json:"password"`
+	PhoneNum string `json:"phone_num"`
 }
