@@ -77,12 +77,12 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if signUpData.ClubId != 0 ||
-		signUpData.Email != "" ||
-		signUpData.LoginId != "" ||
-		signUpData.Password != "" ||
-		signUpData.PhoneNum != "" ||
-		signUpData.UserName != "" {
+	if signUpData.ClubId == 0 ||
+		len(signUpData.Email) < 2 ||
+		len(signUpData.LoginId) < 2 ||
+		len(signUpData.Password) < 2 ||
+		len(signUpData.PhoneNum) < 2 ||
+		len(signUpData.UserName) < 2 {
 		resData, _ := json.Marshal(util.Res{
 			Data: "not enough values",
 			Err:  true,
@@ -96,7 +96,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	rand.Read(salt)
 	encryptedPwd := argon2.IDKey([]byte(signUpData.Password), salt, argonConfig.Time, argonConfig.Memory, argonConfig.Thread, argonConfig.KeyLen)
 
-	_, err = db.Exec("INSERT INTO user (club_id, user_name, email, login_id, password, phone_num, salt) VALUES (?, ?, ?, ?, ?, ?, ?);",
+	_, err = db.Exec("INSERT INTO user (club_id, user_name, email, login_id, password, phone_num, salt) VALUES ($1, $2, $3, $4, $5, $6, $7);",
 		signUpData.ClubId, signUpData.UserName, signUpData.Email, signUpData.LoginId, hex.EncodeToString(encryptedPwd), signUpData.PhoneNum, hex.EncodeToString(salt))
 
 	if err != nil {
