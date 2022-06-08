@@ -100,6 +100,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		signUpData.ClubId, signUpData.UserName, signUpData.Email, signUpData.LoginId, hex.EncodeToString(encryptedPwd), signUpData.PhoneNum, hex.EncodeToString(salt))
 
 	if err != nil {
+		log.Println(err)
 		resData, _ := json.Marshal(util.Res{
 			Data: "cannot sign up",
 			Err:  true,
