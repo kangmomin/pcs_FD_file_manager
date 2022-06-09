@@ -2,6 +2,7 @@ package router
 
 import (
 	"FD/util"
+	"context"
 	"database/sql"
 )
 
@@ -13,3 +14,5 @@ var argonConfig = util.ArgonConfig{
 	Thread: 4,
 	KeyLen: 32,
 }
+
+var ctx = context.Background()

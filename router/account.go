@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 
+	"github.com/go-session/session/v3"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -25,8 +26,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var confirmData util.ConfirmLoginData
-	err = db.QueryRow("SELECT password, salt FROM user WHERE login_id=?", loginData.LoginId).
-		Scan(&confirmData.Password, &confirmData.Salt)
+	var userId int
+	err = db.QueryRow("SELECT user_id, password, salt FROM \"user\" WHERE login_id=$1", loginData.LoginId).
+		Scan(&userId, &confirmData.Password, &confirmData.Salt)
 
 	if err != nil {
 		log.Println(err)
@@ -53,6 +55,19 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		})
 		fmt.Fprint(w, string(resData))
 		return
+	}
+
+	store, err := session.Start(ctx, w, r)
+	store.Set("user_id", userId)
+	err = store.Save()
+	if err != nil {
+		log.Println(err)
+		resData, _ := json.Marshal(util.Res{
+			Data: "saving session error",
+			Err:  true,
+		})
+		w.WriteHeader(500)
+		fmt.Fprint(w, string(resData))
 	}
 
 	resData, _ := json.Marshal(util.Res{
