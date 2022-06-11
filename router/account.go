@@ -58,6 +58,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	store, err := session.Start(ctx, w, r)
+	if err != nil {
+		log.Println(err)
+		resData, _ := json.Marshal(util.Res{
+			Data: nil,
+			Err:  true,
+		})
+		w.WriteHeader(500)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
 	store.Set("user_id", userId)
 	err = store.Save()
 	if err != nil {
@@ -68,6 +79,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		})
 		w.WriteHeader(500)
 		fmt.Fprint(w, string(resData))
+		return
 	}
 
 	resData, _ := json.Marshal(util.Res{
