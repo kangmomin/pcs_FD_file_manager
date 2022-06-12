@@ -24,3 +24,13 @@ type SearchBody struct {
 	StartDate string `json:"startDate"`
 	EndDate   string `json:"endDate"`
 }
+
+type WritePost struct {
+	PostId   int       `json:"post_id"`
+	UserId   int       `json:"user_id"`
+	ClubId   int       `json:"club_id"`
+	Title    string    `json:"title"`
+	Readme   string    `json:"readme"`
+	FilePath string    `json:"file_path"`
+	Created  time.Time `json:"created"`
+}

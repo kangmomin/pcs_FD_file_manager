@@ -106,7 +106,7 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 
 func PostDetail(w http.ResponseWriter, r *http.Request) {
 	postId, ok := mux.Vars(r)["postId"]
-	if ok != false {
+	if !ok {
 		resData, _ := json.Marshal(util.Res{
 			Data: nil,
 			Err:  true,
@@ -149,5 +149,43 @@ func PostDetail(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(resData))
+}
+
+func WritePost(w http.ResponseWriter, r *http.Request) {
+	// post data
+	var pd util.WritePost
+
+	err := json.NewDecoder(r.Body).Decode(&pd)
+	if err != nil {
+		log.Println(err)
+		resData, _ := json.Marshal(util.Res{
+			Data: nil,
+			Err:  true,
+		})
+		w.WriteHeader(400)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	postId, err := db.Exec(`INSERT INTO public.post(
+		title, readme, file_path, created, user_id, club_id) VALUES ($1, $2, $3, $4, $5, $6);`,
+		pd.Title, pd.Readme, pd.FilePath, pd.Created, pd.UserId, pd.ClubId)
+
+	if err != nil {
+		log.Println(err)
+		resData, _ := json.Marshal(util.Res{
+			Data: nil,
+			Err:  true,
+		})
+		w.WriteHeader(500)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+	resData, _ := json.Marshal(util.Res{
+		Data: postId,
+		Err:  false,
+	})
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(resData))
 }
