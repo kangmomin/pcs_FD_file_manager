@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-session/session/v3"
 	"github.com/gorilla/mux"
 )
 
@@ -153,10 +154,27 @@ func PostDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 func WritePost(w http.ResponseWriter, r *http.Request) {
+	store, err := session.Start(ctx, w, r)
+	if err != nil {
+		resData, _ := json.Marshal(util.Res{
+			Data: "need login",
+			Err:  true,
+		})
+		w.WriteHeader(http.StatusUnauthorized)
+		fmt.Fprint(w, string(resData))
+		return
+	}
+
+	data, ok := store.Get("userId")
+	if !ok {
+		return
+	}
+	fmt.Print(data)
+
 	// post data
 	var pd util.WritePost
 
-	err := json.NewDecoder(r.Body).Decode(&pd)
+	err = json.NewDecoder(r.Body).Decode(&pd)
 	if err != nil {
 		log.Println(err)
 		resData, _ := json.Marshal(util.Res{

@@ -24,6 +24,7 @@ func main() {
 	app.HandleFunc("/post", router.GetPosts).Methods("GET")
 	app.HandleFunc("/post/{postId}", router.PostDetail).Methods("GET")
 	app.HandleFunc("/post/search", router.SearchPost).Methods("GET")
+	app.HandleFunc("/post", router.WritePost).Methods("POST")
 
 	// account
 	app.HandleFunc("/login", router.Login).Methods("POST")
