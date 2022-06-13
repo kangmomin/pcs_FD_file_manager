@@ -15,13 +15,7 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 	var postList []util.PostList
 	data, err := db.Query("SELECT post_id, user_name, title, created FROM post ORDER BY post_id DESC LIMIT 30;") // 추후 page searching도 만들어야함.
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("select error", err, 400, w)
 		return
 	}
 
@@ -46,13 +40,7 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 	var searchSetting util.SearchBody
 	err := json.NewDecoder(r.Body).Decode(&searchSetting)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("body data wrong", err, 400, w)
 		return
 	}
 
@@ -80,13 +68,7 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 
 	data, err := db.Query(sql)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("select error", err, 400, w)
 		return
 	}
 
@@ -108,12 +90,7 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 func PostDetail(w http.ResponseWriter, r *http.Request) {
 	postId, ok := mux.Vars(r)["postId"]
 	if !ok {
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("not enough params", nil, 500, w)
 		return
 	}
 
@@ -121,13 +98,7 @@ func PostDetail(w http.ResponseWriter, r *http.Request) {
 	err := db.QueryRow("SELECT club_id, title, readme, file_path, created FROMM post WHERE id=?;", postId).
 		Scan(&postDetail.ClubId, &postDetail.Title, &postDetail.FilePath, &postDetail.Created)
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("select error", err, http.StatusBadRequest, w)
 		return
 	}
 
@@ -156,48 +127,31 @@ func PostDetail(w http.ResponseWriter, r *http.Request) {
 func WritePost(w http.ResponseWriter, r *http.Request) {
 	store, err := session.Start(ctx, w, r)
 	if err != nil {
-		resData, _ := json.Marshal(util.Res{
-			Data: "need login",
-			Err:  true,
-		})
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, string(resData))
+		util.LoginErr(w)
 		return
 	}
 
 	data, ok := store.Get("userId")
 	if !ok {
+		util.LoginErr(w)
 		return
 	}
-	fmt.Print(data)
 
 	// post data
 	var pd util.WritePost
 
 	err = json.NewDecoder(r.Body).Decode(&pd)
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		w.WriteHeader(400)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("body data wrong", err, 400, w)
 		return
 	}
 
 	postId, err := db.Exec(`INSERT INTO public.post(
 		title, readme, file_path, created, user_id, club_id) VALUES ($1, $2, $3, $4, $5, $6);`,
-		pd.Title, pd.Readme, pd.FilePath, pd.Created, pd.UserId, pd.ClubId)
+		pd.Title, pd.Readme, pd.FilePath, pd.Created, data, pd.ClubId)
 
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		w.WriteHeader(500)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("inserting err", err, 500, w)
 		return
 	}
 	resData, _ := json.Marshal(util.Res{
