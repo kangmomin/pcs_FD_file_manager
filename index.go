@@ -30,5 +30,8 @@ func main() {
 	app.HandleFunc("/login", router.Login).Methods("POST")
 	app.HandleFunc("/sign-up", router.SignUp).Methods("POST")
 
+	// file download
+	app.HandleFunc("/file/{path}", router.DownloadFile).Methods("POST")
+
 	http.ListenAndServe(":8080", app)
 }
