@@ -12,7 +12,7 @@ import (
 
 func GetPosts(w http.ResponseWriter, _ *http.Request) {
 	var postList []util.PostList
-	data, err := db.Query("SELECT post_id, user_name, title, created FROM post ORDER BY post_id DESC LIMIT 30;") // 추후 page searching도 만들어야함.
+	data, err := db.Query("SELECT post_id, u.user_name, title, created FROM post INNER JOIN \"user\" u ON u.user_id = post.user_id ORDER BY post_id DESC LIMIT 30;") // 추후 page searching도 만들어야함.
 	if err != nil {
 		util.GlobalErr("select error", err, 400, w)
 		return
