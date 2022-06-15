@@ -1,12 +1,15 @@
 package util
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"sync"
 
+	"github.com/go-session/session/v3"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -70,3 +73,23 @@ func connDB() *sql.DB {
 }
 
 // ============== database connect ================
+
+// ============== login check ================
+
+func LoginCheck(w http.ResponseWriter, r *http.Request) interface{} {
+	store, err := session.Start(context.Background(), w, r)
+	if err != nil {
+		LoginErr(w)
+		return nil
+	}
+
+	data, ok := store.Get("userId")
+	if !ok {
+		LoginErr(w)
+		return nil
+	}
+
+	return data
+}
+
+// ============== login check ================
