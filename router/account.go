@@ -150,3 +150,24 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, string(resData))
 }
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	if userId := util.LoginCheck(w, r); userId != nil {
+		util.GlobalErr("didn't login", nil, 400, w)
+		return
+	}
+
+	err := session.Destroy(ctx, w, r)
+	if err != nil {
+		util.GlobalErr("cannot logout", err, 500, w)
+		return
+	}
+
+	resData, _ := json.Marshal(util.Res{
+		Data: nil,
+		Err:  false,
+	})
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(resData))
+}
