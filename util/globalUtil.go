@@ -79,13 +79,11 @@ func connDB() *sql.DB {
 func LoginCheck(w http.ResponseWriter, r *http.Request) interface{} {
 	store, err := session.Start(context.Background(), w, r)
 	if err != nil {
-		LoginErr(w)
 		return nil
 	}
 
 	data, ok := store.Get("userId")
 	if !ok {
-		LoginErr(w)
 		return nil
 	}
 
