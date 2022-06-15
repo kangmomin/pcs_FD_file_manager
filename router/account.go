@@ -21,13 +21,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var loginData util.Login
 	err := json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		resData, _ := json.Marshal(util.Res{
-			Data: "data isn't json",
-			Err:  true,
-		})
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("data isn't json", err, 400, w)
+		return
 	}
 
 	var confirmData util.ConfirmLoginData
@@ -36,13 +31,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Scan(&userId, &confirmData.Password, &confirmData.Salt)
 
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: "id error",
-			Err:  false,
-		})
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("id error", err, http.StatusUnauthorized, w)
 		return
 	}
 
@@ -53,37 +42,20 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			argonConfig.Time, argonConfig.Memory, argonConfig.Thread, argonConfig.KeyLen))
 
 	if encodedPwd != confirmData.Password {
-		w.WriteHeader(http.StatusUnauthorized)
-		resData, _ := json.Marshal(util.Res{
-			Data: "password error",
-			Err:  false,
-		})
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("password error", err, http.StatusUnauthorized, w)
 		return
 	}
 
 	store, err := session.Start(ctx, w, r)
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		w.WriteHeader(500)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("session error", err, 500, w)
 		return
 	}
 
 	store.Set("user_id", userId)
 	err = store.Save()
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: "saving session error",
-			Err:  true,
-		})
-		w.WriteHeader(500)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("session save error", err, 500, w)
 		return
 	}
 
@@ -99,13 +71,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	var signUpData util.SignUp
 	err := json.NewDecoder(r.Body).Decode(&signUpData)
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: "data isn't json",
-			Err:  true,
-		})
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("data isn't json", err, 400, w)
 		return
 	}
 
@@ -115,12 +81,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		len(signUpData.Password) < 2 ||
 		len(signUpData.PhoneNum) < 2 ||
 		len(signUpData.UserName) < 2 {
-		resData, _ := json.Marshal(util.Res{
-			Data: "not enough values",
-			Err:  true,
-		})
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("data is not enough", nil, 400, w)
 		return
 	}
 
@@ -128,17 +89,11 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	rand.Read(salt)
 	encryptedPwd := argon2.IDKey([]byte(signUpData.Password), salt, argonConfig.Time, argonConfig.Memory, argonConfig.Thread, argonConfig.KeyLen)
 
-	_, err = db.Exec("INSERT INTO user (club_id, user_name, email, login_id, password, phone_num, salt) VALUES ($1, $2, $3, $4, $5, $6, $7);",
+	_, err = db.Exec("INSERT INTO public.user (club_id, user_name, email, login_id, password, phone_num, salt) VALUES ($1, $2, $3, $4, $5, $6, $7);",
 		signUpData.ClubId, signUpData.UserName, signUpData.Email, signUpData.LoginId, hex.EncodeToString(encryptedPwd), signUpData.PhoneNum, hex.EncodeToString(salt))
 
 	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: "cannot sign up",
-			Err:  true,
-		})
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, string(resData))
+		util.GlobalErr("cannot sign up", err, 400, w)
 		return
 	}
 
