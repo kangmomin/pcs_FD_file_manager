@@ -13,7 +13,7 @@ import (
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	if userId := util.LoginCheck(w, r); userId == nil {
+	if userId := util.LoginCheck(w, r); userId != nil {
 		util.GlobalErr("already login", nil, 400, w)
 		return
 	}
