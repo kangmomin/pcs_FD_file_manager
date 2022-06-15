@@ -8,7 +8,9 @@ import (
 )
 
 func GlobalErr(data string, err error, code int, w http.ResponseWriter) {
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
+	}
 	resData, _ := json.Marshal(Res{
 		Data: data,
 		Err:  true,
