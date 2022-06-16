@@ -28,6 +28,8 @@ func main() {
 	// admin rights
 	app.HandleFunc("/admin/post", router.WritePost).Methods("POST")
 	app.HandleFunc("/admin/post/{postId}", router.DeletePost).Methods("DELETE")
+	app.HandleFunc("/admin/users", router.UserList).Methods("POST")
+	app.HandleFunc("/admin/apply-users", router.ApplyAdminList).Methods("POST")
 
 	// account
 	app.HandleFunc("/login", router.Login).Methods("POST")

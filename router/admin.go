@@ -117,3 +117,41 @@ func UserList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	fmt.Fprint(w, string(resData))
 }
+
+func ApplyAdminList(w http.ResponseWriter, r *http.Request) {
+	var (
+		userId interface{}
+		ok     bool
+	)
+
+	if userId, ok = util.AdminCheck(w, r); !ok {
+		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
+		return
+	}
+
+	var applyList []util.ApplyAdmin
+
+	data, err := db.Query(`SELECT user_id, user_name, club_id FROM admin a INNER JOIN user u ON u.user_id=a.user_id WHERE a.accept=false;`)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			util.GlobalErr("data not found", nil, 404, w)
+		} else {
+			util.GlobalErr("SELECT error", err, 500, w)
+		}
+		return
+	}
+
+	for data.Next() {
+		var user util.ApplyAdmin
+		data.Scan(&user.UserId, &user.UserName, &user.ClubId)
+		applyList = append(applyList, user)
+	}
+
+	resData, _ := json.Marshal(util.Res{
+		Data: applyList,
+		Err:  false,
+	})
+	adminLog.Println("[" + fmt.Sprintf("%v", userId) + "] was inquire user list that apply for admin")
+	w.WriteHeader(200)
+	fmt.Fprint(w, string(resData))
+}

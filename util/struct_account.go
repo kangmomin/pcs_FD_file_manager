@@ -27,3 +27,9 @@ type UserList struct {
 	Email    string `json:"email"`
 	PhoneNum string `json:"phone_num"`
 }
+
+type ApplyAdmin struct {
+	UserId   int    `json:"user_id"`
+	ClubId   int    `json:"club_id"`
+	UserName string `json:"user_name"`
+}
