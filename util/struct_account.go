@@ -20,6 +20,18 @@ type SignUp struct {
 	PhoneNum string `json:"phone_num"`
 }
 
+func (s SignUp) IsValidLen() (isOk bool) {
+	if s.ClubId == 0 ||
+		len(s.Email) < 2 ||
+		len(s.LoginId) < 2 ||
+		len(s.Password) < 2 ||
+		len(s.PhoneNum) < 2 ||
+		len(s.UserName) < 2 {
+		return false
+	}
+	return true
+}
+
 type UserList struct {
 	UserId   int    `json:"user_id"`
 	ClubId   int    `json:"club_id"`

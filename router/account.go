@@ -75,12 +75,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if signUpData.ClubId == 0 ||
-		len(signUpData.Email) < 2 ||
-		len(signUpData.LoginId) < 2 ||
-		len(signUpData.Password) < 2 ||
-		len(signUpData.PhoneNum) < 2 ||
-		len(signUpData.UserName) < 2 {
+	if signUpData.IsValidLen() {
 		util.GlobalErr("data is not enough", nil, 400, w)
 		return
 	}
