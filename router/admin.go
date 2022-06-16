@@ -2,6 +2,7 @@ package router
 
 import (
 	"FD/util"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,10 +12,13 @@ import (
 )
 
 func WritePost(w http.ResponseWriter, r *http.Request) {
-	var userId interface{}
+	var (
+		userId interface{} // test
+		ok     bool
+	)
 
-	if userId = util.LoginCheck(w, r); userId == nil {
-		util.LoginErr(w)
+	if userId, ok = util.AdminCheck(w, r); !ok {
+		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
 		return
 	}
 
@@ -44,12 +48,16 @@ func WritePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeletePost(w http.ResponseWriter, r *http.Request) {
-	var userId interface{}
+	var (
+		userId interface{} // test
+		ok     bool
+	)
 
-	if userId = util.LoginCheck(w, r); userId == nil {
-		util.LoginErr(w)
+	if userId, ok = util.AdminCheck(w, r); !ok {
+		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
 		return
 	}
+
 	postId := mux.Vars(r)["postId"]
 	if numPostId, err := strconv.Atoi(postId); err != nil || numPostId < 1 {
 		util.GlobalErr("wrong post_id", nil, 400, w)
@@ -66,5 +74,46 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		Err:  false,
 	})
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(resData))
+}
+
+func UserList(w http.ResponseWriter, r *http.Request) {
+	var (
+		userId interface{}
+		ok     bool
+	)
+
+	if userId, ok = util.AdminCheck(w, r); !ok {
+		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
+		return
+	}
+
+	var userList []util.UserList
+
+	data, err := db.Query(`SELECT user_id, club_id, user_name, email, phone_num FROM user;`)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			util.GlobalErr("not found", nil, 404, w)
+		} else {
+			util.GlobalErr("SELECT error", err, 500, w)
+		}
+		return
+	}
+
+	for data.Next() {
+		var user util.UserList
+		if err := data.Scan(&user.UserId, &user.ClubId, &user.UserName, &user.Email, &user.PhoneNum); err != nil {
+			continue
+		}
+
+		userList = append(userList, user)
+	}
+
+	resData, _ := json.Marshal(util.Res{
+		Data: userList,
+		Err:  false,
+	})
+	adminLog.Println("[" + fmt.Sprintf("%v", userId) + "] inquire user information")
+	w.WriteHeader(200)
 	fmt.Fprint(w, string(resData))
 }
