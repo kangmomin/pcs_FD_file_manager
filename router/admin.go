@@ -155,3 +155,27 @@ func ApplyAdminList(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	fmt.Fprint(w, string(resData))
 }
+
+func AcceptUser(w http.ResponseWriter, r *http.Request) {
+	var ok bool
+
+	if _, ok = util.AdminCheck(w, r); !ok {
+		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
+		return
+	}
+
+	userId := mux.Vars(r)["userId"]
+
+	_, err := db.Exec(`UPDATE TO admin SET accept=true WHERE user_id=$1`, userId)
+	if err != nil {
+		util.GlobalErr("cannot update", err, 500, w)
+		return
+	}
+
+	resData, _ := json.Marshal(util.Res{
+		Data: "update success",
+		Err:  false,
+	})
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, string(resData))
+}
