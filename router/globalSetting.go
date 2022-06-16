@@ -9,6 +9,7 @@ import (
 var (
 	db          *sql.DB = util.DB
 	log                 = util.Logger
+	adminLog            = util.AdminLogger
 	argonConfig         = util.ArgonConfig{
 		Time:   10,
 		Memory: 64 * 1024,

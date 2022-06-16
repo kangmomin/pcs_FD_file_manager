@@ -34,6 +34,15 @@ type logger struct {
 
 var once sync.Once
 var Logger = getErrLogger()
+var AdminLogger = adminLogger()
+
+func adminLogger() *logger {
+	var logger *logger
+	once.Do(func() {
+		logger = setLogger("./log/admin.log")
+	})
+	return logger
+}
 
 func getErrLogger() *logger {
 	var logger *logger
@@ -88,6 +97,27 @@ func LoginCheck(w http.ResponseWriter, r *http.Request) interface{} {
 	}
 
 	return data
+}
+
+func AdminCheck(w http.ResponseWriter, r *http.Request) (interface{}, bool) {
+	if data := LoginCheck(w, r); data == nil {
+		return nil, false
+	}
+	store, err := session.Start(context.Background(), w, r)
+	if err != nil {
+		return nil, false
+	}
+	data, ok := store.Get("userId")
+	if !ok {
+		return nil, false
+	}
+	err = DB.QueryRow(`SELECT COUNT() FROM admin WHERE user_id=$1`, data).Err()
+	if err != nil {
+		log.Println(err)
+		return nil, false
+	}
+
+	return data, true
 }
 
 // ============== login check ================
