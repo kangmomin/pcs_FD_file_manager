@@ -2,6 +2,7 @@ package router
 
 import (
 	"FD/util"
+	"database/sql"
 
 	"encoding/json"
 	"fmt"
@@ -14,7 +15,11 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 	var postList []util.PostList
 	data, err := db.Query("SELECT post_id, u.user_name, title, created FROM post INNER JOIN \"user\" u ON u.user_id = post.user_id ORDER BY post_id DESC LIMIT 30;") // 추후 page searching도 만들어야함.
 	if err != nil {
-		util.GlobalErr("select error", err, 400, w)
+		if err == sql.ErrNoRows {
+			util.GlobalErr("no data", nil, 404, w)
+		} else {
+			util.GlobalErr("select error", err, 400, w)
+		}
 		return
 	}
 
@@ -34,7 +39,7 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 }
 
 func SearchPost(w http.ResponseWriter, r *http.Request) {
-	sql := "SELECT post_id, user_name, title, created FROM post WHERE "
+	query := "SELECT post_id, user_name, title, created FROM post WHERE "
 
 	var searchSetting util.SearchBody
 	err := json.NewDecoder(r.Body).Decode(&searchSetting)
@@ -45,29 +50,33 @@ func SearchPost(w http.ResponseWriter, r *http.Request) {
 
 	// word search
 	if len(searchSetting.Word) < 3 {
-		sql += "title LIKE %" + searchSetting.Word + "% AND "
+		query += "title LIKE %" + searchSetting.Word + "% AND "
 	}
 
 	// club search
 	if len(searchSetting.Club) > 0 {
-		sql += "club=" + searchSetting.Club + " AND "
+		query += "club=" + searchSetting.Club + " AND "
 	}
 
 	// time search
 	if len(searchSetting.StartDate) > 9 {
 		// 2022-03-23
-		sql += "post_id=(SELECT post_id WHERE create BETWEEN" + searchSetting.StartDate
+		query += "post_id=(SELECT post_id WHERE create BETWEEN" + searchSetting.StartDate
 		if len(searchSetting.EndDate) > 9 {
-			sql += "AND " + searchSetting.EndDate
+			query += "AND " + searchSetting.EndDate
 		}
-		sql += ")"
+		query += ")"
 	}
 
-	sql += "ORDER BY post_id LIMIT 30;"
+	query += "ORDER BY post_id LIMIT 30;"
 
-	data, err := db.Query(sql)
+	data, err := db.Query(query)
 	if err != nil {
-		util.GlobalErr("select error", err, 400, w)
+		if err == sql.ErrNoRows {
+			util.GlobalErr("no data", nil, 404, w)
+		} else {
+			util.GlobalErr("select error", err, 400, w)
+		}
 		return
 	}
 
@@ -94,23 +103,14 @@ func PostDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var postDetail util.PostDetail
-	err := db.QueryRow("SELECT club_id, title, readme, file_path, created FROMM post WHERE id=?;", postId).
-		Scan(&postDetail.ClubId, &postDetail.Title, &postDetail.FilePath, &postDetail.Created)
+	err := db.QueryRow("SELECT u.user_name, p.club_id, p.title, p.readme, p.file_path, p.created FROM post p INNER JOIN \"user\" u ON u.user_id=p.user_id WHERE post_id=$1;", postId).
+		Scan(&postDetail.WriterName, &postDetail.ClubId, &postDetail.Title, &postDetail.Readme, &postDetail.FilePath, &postDetail.Created)
 	if err != nil {
-		util.GlobalErr("select error", err, http.StatusBadRequest, w)
-		return
-	}
-
-	err = db.QueryRow("SELECT user_name FROM user WHERE user_id=(SELECT writer_id FROM post WHERE post_id=?);", postId).
-		Scan(&postDetail.WriterName)
-	if err != nil {
-		log.Println(err)
-		resData, _ := json.Marshal(util.Res{
-			Data: nil,
-			Err:  true,
-		})
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, string(resData))
+		if err == sql.ErrNoRows {
+			util.GlobalErr("no data", nil, 404, w)
+		} else {
+			util.GlobalErr("select error", err, http.StatusBadRequest, w)
+		}
 		return
 	}
 
