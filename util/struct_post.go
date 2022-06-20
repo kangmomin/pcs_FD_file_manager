@@ -21,6 +21,7 @@ type PostDetail struct {
 type SearchBody struct {
 	Word      string `json:"word"`
 	Club      string `json:"club"`
+	ClubId    int    `json:"club_id"`
 	StartDate string `json:"startDate"`
 	EndDate   string `json:"endDate"`
 }

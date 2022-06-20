@@ -22,7 +22,7 @@ func main() {
 
 	// post
 	app.HandleFunc("/post", router.GetPosts).Methods("GET")
-	app.HandleFunc("/post/{postId}", router.PostDetail).Methods("GET")
+	app.HandleFunc("/post/detail/{postId}", router.PostDetail).Methods("GET")
 	app.HandleFunc("/post/search", router.SearchPost).Methods("GET")
 
 	// admin rights

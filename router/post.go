@@ -3,6 +3,7 @@ package router
 import (
 	"FD/util"
 	"database/sql"
+	"strconv"
 
 	"encoding/json"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 
 func GetPosts(w http.ResponseWriter, _ *http.Request) {
 	var postList []util.PostList
-	data, err := db.Query("SELECT post_id, u.user_name, title, created FROM post INNER JOIN \"user\" u ON u.user_id = post.user_id ORDER BY post_id DESC LIMIT 30;") // 추후 page searching도 만들어야함.
+	data, err := db.Query("SELECT post_id, u.user_name, title, created FROM post INNER JOIN \"user\" u ON u.user_id = post.user_id ") // 추후 page searching도 만들어야함.
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr("no data", nil, 404, w)
@@ -39,38 +40,64 @@ func GetPosts(w http.ResponseWriter, _ *http.Request) {
 }
 
 func SearchPost(w http.ResponseWriter, r *http.Request) {
-	query := "SELECT post_id, user_name, title, created FROM post WHERE "
+	query := `
+SELECT p.post_id, u.user_name, p.title, p.created FROM post p INNER JOIN "user" u ON u.user_id=p.user_id 
+`
 
-	var searchSetting util.SearchBody
-	err := json.NewDecoder(r.Body).Decode(&searchSetting)
-	if err != nil {
-		util.GlobalErr("body data wrong", err, 400, w)
-		return
+	var (
+		searchSetting util.SearchBody
+		queryParams   []any
+		err           error
+	)
+
+	params := r.URL.Query()
+	searchSetting.Club = params.Get("club")
+	searchSetting.Word = params.Get("word")
+	searchSetting.StartDate = params.Get("startDate")
+	searchSetting.EndDate = params.Get("endDate")
+
+	if len(searchSetting.Word) > 3 ||
+		len(searchSetting.Club) > 0 ||
+		len(searchSetting.StartDate) > 9 ||
+		len(searchSetting.EndDate) > 9 {
+		query += "WHERE "
 	}
+	dataIdx := 1
 
 	// word search
-	if len(searchSetting.Word) < 3 {
-		query += "title LIKE %" + searchSetting.Word + "% AND "
+	if len(searchSetting.Word) > 3 {
+		query += "p.title ILIKE '%' || " + strconv.Itoa(dataIdx) + "|| '%' "
+		queryParams = append(queryParams, searchSetting.Word)
+		dataIdx++
 	}
 
 	// club search
 	if len(searchSetting.Club) > 0 {
-		query += "club=" + searchSetting.Club + " AND "
+		if dataIdx > 1 {
+			query += "AND "
+		}
+		query += "p.club=" + strconv.Itoa(dataIdx)
+		searchSetting.ClubId, err = strconv.Atoi(searchSetting.Club)
+		if err != nil {
+			util.GlobalErr("Club id is not number", nil, 400, w)
+			return
+		}
+		queryParams = append(queryParams, searchSetting.ClubId)
+		dataIdx++
 	}
 
 	// time search
 	if len(searchSetting.StartDate) > 9 {
-		// 2022-03-23
-		query += "post_id=(SELECT post_id WHERE create BETWEEN" + searchSetting.StartDate
-		if len(searchSetting.EndDate) > 9 {
-			query += "AND " + searchSetting.EndDate
+		if dataIdx > 1 {
+			query += " AND "
 		}
-		query += ")"
+		// 2022-03-23
+		query += "post_id=(SELECT post_id FROM post WHERE created BETWEEN " + strconv.Itoa(dataIdx) + " AND " + strconv.Itoa(dataIdx+1) + ")"
+		queryParams = append(queryParams, searchSetting.StartDate, searchSetting.EndDate)
 	}
+	query += " ORDER BY post_id DESC LIMIT 30;"
 
-	query += "ORDER BY post_id LIMIT 30;"
-
-	data, err := db.Query(query)
+	data, err := db.Query(query, queryParams...)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr("no data", nil, 404, w)
