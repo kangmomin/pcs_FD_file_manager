@@ -131,7 +131,7 @@ func ApplyAdminList(w http.ResponseWriter, r *http.Request) {
 
 	var applyList []util.ApplyAdmin
 
-	data, err := db.Query(`SELECT user_id, user_name, club_id FROM admin a INNER JOIN user u ON u.user_id=a.user_id WHERE a.accept=false;`)
+	data, err := db.Query(`SELECT a.user_id, u.user_name, u.club_id FROM admin a INNER JOIN "user" u ON u.user_id=a.user_id WHERE a.accept=false;`)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			util.GlobalErr("data not found", nil, 404, w)
