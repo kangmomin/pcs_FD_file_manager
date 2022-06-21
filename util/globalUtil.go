@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/go-session/session/v3"
+	"github.com/go-redis/redis/v9"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -83,32 +83,54 @@ func connDB() *sql.DB {
 
 // ============== database connect ================
 
+// ============== redis connect ================
+
+var Rdb = redisConn()
+
+func redisConn() *redis.Client {
+	c := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	_, err := c.Ping(context.Background()).Result()
+	if err != nil {
+		log.Println(err)
+	}
+	return c
+}
+
+// ============== redis connect ================
+
 // ============== login check ================
 
-func LoginCheck(w http.ResponseWriter, r *http.Request) interface{} {
-	store, err := session.Start(context.Background(), w, r)
+func LoginCheck(r *http.Request) interface{} {
+	sessionID, err := r.Cookie("sessionID")
 	if err != nil {
+		if err != http.ErrNoCookie {
+			log.Println(nil)
+		}
 		return nil
 	}
 
-	data, ok := store.Get("userId")
-	if !ok {
+	data, err := Rdb.Get(context.Background(), sessionID.Value).Result()
+	if err != nil {
+		log.Println(err)
 		return nil
 	}
 
 	return data
 }
 
-func AdminCheck(w http.ResponseWriter, r *http.Request) (interface{}, bool) {
-	if data := LoginCheck(w, r); data == nil {
+func AdminCheck(r *http.Request) (interface{}, bool) {
+	if data := LoginCheck(r); data == nil {
 		return nil, false
 	}
-	store, err := session.Start(context.Background(), w, r)
+
+	data, err := Rdb.Get(context.Background(), "userId").Result()
 	if err != nil {
-		return nil, false
-	}
-	data, ok := store.Get("userId")
-	if !ok {
+		log.Println(err)
 		return nil, false
 	}
 	err = DB.QueryRow(`SELECT COUNT() FROM admin WHERE user_id=$1`, data).Err()

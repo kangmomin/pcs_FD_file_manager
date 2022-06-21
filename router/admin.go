@@ -17,7 +17,7 @@ func WritePost(w http.ResponseWriter, r *http.Request) {
 		ok     bool
 	)
 
-	if userId, ok = util.AdminCheck(w, r); !ok {
+	if userId, ok = util.AdminCheck(r); !ok {
 		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
 		return
 	}
@@ -53,7 +53,7 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		ok     bool
 	)
 
-	if userId, ok = util.AdminCheck(w, r); !ok {
+	if userId, ok = util.AdminCheck(r); !ok {
 		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
 		return
 	}
@@ -83,7 +83,7 @@ func UserList(w http.ResponseWriter, r *http.Request) {
 		ok     bool
 	)
 
-	if userId, ok = util.AdminCheck(w, r); !ok {
+	if userId, ok = util.AdminCheck(r); !ok {
 		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
 		return
 	}
@@ -124,7 +124,7 @@ func ApplyAdminList(w http.ResponseWriter, r *http.Request) {
 		ok     bool
 	)
 
-	if userId, ok = util.AdminCheck(w, r); !ok {
+	if userId, ok = util.AdminCheck(r); !ok {
 		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
 		return
 	}
@@ -159,7 +159,7 @@ func ApplyAdminList(w http.ResponseWriter, r *http.Request) {
 func AcceptUser(w http.ResponseWriter, r *http.Request) {
 	var ok bool
 
-	if _, ok = util.AdminCheck(w, r); !ok {
+	if _, ok = util.AdminCheck(r); !ok {
 		util.GlobalErr("not admin", nil, http.StatusForbidden, w)
 		return
 	}

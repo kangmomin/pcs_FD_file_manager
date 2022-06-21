@@ -8,12 +8,11 @@ import (
 	"math/rand"
 	"net/http"
 
-	"github.com/go-session/session/v3"
 	"golang.org/x/crypto/argon2"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	if userId := util.LoginCheck(w, r); userId != nil {
+	if userId := util.LoginCheck(r); userId != nil {
 		util.GlobalErr("already login", nil, 400, w)
 		return
 	}
@@ -46,19 +45,24 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, err := session.Start(ctx, w, r)
+	sessionID := [8]byte{}
+	rand.Read(sessionID[:])
+
+	_, err = util.Rdb.Set(ctx, hex.EncodeToString(sessionID[:]), userId, 0).Result()
 	if err != nil {
-		util.GlobalErr("session error", err, 500, w)
+		util.GlobalErr("generate session error", err, 500, w)
 		return
 	}
 
-	store.Set("user_id", userId)
-	err = store.Save()
-	if err != nil {
-		util.GlobalErr("session save error", err, 500, w)
-		return
-	}
+	data, _ := util.Rdb.Get(ctx, hex.EncodeToString(sessionID[:])).Result()
+	fmt.Println(data)
+	fmt.Println(hex.EncodeToString(sessionID[:]))
 
+	http.SetCookie(w, &http.Cookie{
+		Name:     "sessionID",
+		Value:    hex.EncodeToString(sessionID[:]),
+		HttpOnly: true,
+	})
 	resData, _ := json.Marshal(util.Res{
 		Data: "login sucess",
 		Err:  false,
@@ -102,16 +106,17 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	if userId := util.LoginCheck(w, r); userId != nil {
+	if userId := util.LoginCheck(r); userId != nil {
 		util.GlobalErr("didn't login", nil, 400, w)
 		return
 	}
-
-	err := session.Destroy(ctx, w, r)
+	c, err := r.Cookie("sessionID")
 	if err != nil {
 		util.GlobalErr("cannot logout", err, 500, w)
 		return
 	}
+	c.MaxAge = -1
+	http.SetCookie(w, c)
 
 	resData, _ := json.Marshal(util.Res{
 		Data: nil,

@@ -3,21 +3,12 @@ package main
 import (
 	"net/http"
 
-	"github.com/go-session/redis/v3"
-	"github.com/go-session/session/v3"
 	"github.com/gorilla/mux"
 
 	"FD/router"
 )
 
 func main() {
-	session.InitManager(
-		session.SetStore(redis.NewRedisStore(&redis.Options{
-			Addr: "localhost:6379",
-			DB:   15,
-		})),
-	)
-
 	app := mux.NewRouter()
 
 	// post
