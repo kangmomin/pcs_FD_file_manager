@@ -34,26 +34,23 @@ type logger struct {
 
 var once sync.Once
 var Logger = getErrLogger()
-var AdminLogger = adminLogger()
-
-func adminLogger() *logger {
-	var logger *logger
-	once.Do(func() {
-		logger = setLogger("./log/admin.log")
-	})
-	return logger
-}
+var AdminLogger *logger
 
 func getErrLogger() *logger {
 	var logger *logger
 	once.Do(func() {
 		logger = setLogger("./log/err.log")
+		AdminLogger = setLogger("./log/admin.log")
 	})
 	return logger
 }
 
 func setLogger(filePath string) *logger {
-	file, _ := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 
 	log.SetOutput(file)
 	return &logger{
