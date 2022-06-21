@@ -124,16 +124,12 @@ func LoginCheck(r *http.Request) interface{} {
 }
 
 func AdminCheck(r *http.Request) (interface{}, bool) {
-	if data := LoginCheck(r); data == nil {
+	var data interface{}
+	if data = LoginCheck(r); data == nil {
 		return nil, false
 	}
 
-	data, err := Rdb.Get(context.Background(), "userId").Result()
-	if err != nil {
-		log.Println(err)
-		return nil, false
-	}
-	err = DB.QueryRow(`SELECT COUNT() FROM admin WHERE user_id=$1`, data).Err()
+	err := DB.QueryRow(`SELECT admin_tier FROM admin WHERE user_id=$1 AND accept=true`, data).Err()
 	if err != nil {
 		log.Println(err)
 		return nil, false
