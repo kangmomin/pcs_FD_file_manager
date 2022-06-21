@@ -106,7 +106,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	if userId := util.LoginCheck(r); userId != nil {
+	if userId := util.LoginCheck(r); userId == nil {
 		util.GlobalErr("didn't login", nil, 400, w)
 		return
 	}
@@ -119,7 +119,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, c)
 
 	resData, _ := json.Marshal(util.Res{
-		Data: nil,
+		Data: "logout success",
 		Err:  false,
 	})
 
